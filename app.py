@@ -17,7 +17,7 @@ url3 = os.getenv('URL3')
 
 app = Flask(__name__)
 
-cors = CORS(app, resources={r"*": {"origins": [url,url2,url3]}})
+cors = CORS(app, resources={r"*": {"origins": "*"}})
 
 # Configuración de logueo
 logging.basicConfig(level=logging.INFO)
