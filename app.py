@@ -1,3 +1,4 @@
+from threading import Thread
 from flask import Flask, request, jsonify
 from openai import OpenAI
 import logging
@@ -98,16 +99,30 @@ def get_completion_from_messages(message,thread_id,instruc):
                     ]
                     )
                     fin_conversacion = True
-
+                    thread_messages = client.beta.threads.messages.list(thread_id)
+                    return {'mensaje':thread_messages,'fin_conversacion' : fin_conversacion,'run':run}
 
 
             thread_messages = client.beta.threads.messages.list(thread_id)
-            return {'mensaje':thread_messages,'fin_conversacion' : fin_conversacion}
+            return {'mensaje':thread_messages,'fin_conversacion' : fin_conversacion,'run':run}
 
-def generar_plan(plan):
-    {
+def generar_plan(run,thread_id):
+    
+        status = "in_progress"
+        while status == "queued" or status == "in_progress" or status == "requires_action":
+            run = client.beta.threads.runs.retrieve(
+                thread_id=thread_id,
+                run_id=run.id
+            )
+            status = run.status
+
+        thread_messages = client.beta.threads.messages.list(thread_id)
+        plan = thread_messages.data[0].content[0].text.value
         print(plan)
-    }
+    
+def generar_plan_async(run, thread_id):
+    Thread(target=generar_plan, args=(run, thread_id)).start()
+
 
 @app.route('/')
 def index():
@@ -159,8 +174,9 @@ def manejar_preguntas():
     info = get_completion_from_messages(respuesta,thread_id,instruc)
     mensaje = info['mensaje']
     if info['fin_conversacion']:
-        message = "Gracias por contestar las preguntas. Su plan nutricicional le llegará por e-mail"
-        generar_plan(mensaje.data[0].content[0].text.value)
+        message = "Gracias por contestar las preguntas. Su plan nutricional le llegará por e-mail"
+        # Ahora se llama a la función auxiliar en lugar de a generar_plan directamente
+        generar_plan_async(info['run'], thread_id)
     else:
         message = mensaje.data[0].content[0].text.value
 
