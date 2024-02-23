@@ -1,6 +1,36 @@
-# local env files
-.env*.local
+# Archivos de Byte de Python
+*.pyc
+
+# Directorio virtualenv
+venv/
+
+# Directorio de paquetes instalados
+env/
+
+# Directorio de dependencias de Python
+__pycache__/
+
+# Registro de errores
+*.log
+
+# Archivos de configuración local
+instance/
+
+# Archivos de configuración con información sensible
+config.py
+
+# Archivos de caché
+.cache/
+
+# Archivos de compilación
+*.pyo
+*.pyd
+
+# Archivos de respaldo
+*~
+
+# Archivos de entorno
 .env
 
-venv
-.vercel
+# Carpeta de datos
+data/
