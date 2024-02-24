@@ -128,9 +128,10 @@ def generar_plan(run,thread_id,usuario_id,idioma):
         print(plan)
         enviar_plan_nutricional_por_correo(plan,usuario_id,'Plan Nutricional','Hola',idioma)
     
-def generar_plan_async(run, thread_id,usuario_id,idioma):
-    Thread(target=generar_plan, args=(run, thread_id,usuario_id,idioma)).start()
-
+# def generar_plan_async(run, thread_id,usuario_id,idioma):
+#     Thread(target=generar_plan, args=(run, thread_id,usuario_id,idioma)).start()
+async def generar_plan_async(run, thread_id,usuario_id,idioma):
+    await asyncio.create_task(generar_plan(run, thread_id,usuario_id,idioma))
 
 @app.route('/')
 def index():
