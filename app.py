@@ -1,9 +1,12 @@
+from threading import Thread
 from flask import Flask, request, jsonify
 from openai import OpenAI
 import logging
 import jwt
 import datetime
 import os
+from correo import enviar_plan_nutricional_por_correo
+
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -17,7 +20,11 @@ url3 = os.getenv('URL3')
 
 app = Flask(__name__)
 
-cors = CORS(app, resources={r"*": {"origins": [url,url2,url3]}})
+
+cors = CORS(app, resources={r"*": {"origins": "*"}})
+
+#cors = CORS(app, resources={r"*": {"origins": [url,url2,url3]}})
+
 
 # Configuración de logueo
 logging.basicConfig(level=logging.INFO)
@@ -29,13 +36,14 @@ assistant = client.beta.assistants.retrieve(ass_id)
                                             
 instruc = assistant.instructions
 
-def generar_token(usuario_id, thread_id):
+def generar_token(usuario_id, thread_id,idioma):
     """
     Genera un token JWT para un usuario y un hilo (thread) específico.
     """
     payload = {
         'usuario_id': usuario_id,
         'thread_id': thread_id,
+        'idioma': idioma,
         'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)  # Expira en 1 hora
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
@@ -48,7 +56,7 @@ class TokenError(Exception):
 def verificar_token(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-        return {'usuario_id': payload['usuario_id'], 'thread_id': payload['thread_id']}
+        return {'usuario_id': payload['usuario_id'], 'thread_id': payload['thread_id'],'idioma':payload['idioma']}
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError) as e:
         raise TokenError(str(e))
 
@@ -98,16 +106,31 @@ def get_completion_from_messages(message,thread_id,instruc):
                     ]
                     )
                     fin_conversacion = True
-
+                    thread_messages = client.beta.threads.messages.list(thread_id)
+                    return {'mensaje':thread_messages,'fin_conversacion' : fin_conversacion,'run':run}
 
 
             thread_messages = client.beta.threads.messages.list(thread_id)
-            return {'mensaje':thread_messages,'fin_conversacion' : fin_conversacion}
+            return {'mensaje':thread_messages,'fin_conversacion' : fin_conversacion,'run':run}
 
-def generar_plan(plan):
-    {
+def generar_plan(run,thread_id,usuario_id,idioma):
+    
+        status = "in_progress"
+        while status == "queued" or status == "in_progress" or status == "requires_action":
+            run = client.beta.threads.runs.retrieve(
+                thread_id=thread_id,
+                run_id=run.id
+            )
+            status = run.status
+
+        thread_messages = client.beta.threads.messages.list(thread_id)
+        plan = thread_messages.data[0].content[0].text.value
         print(plan)
-    }
+        enviar_plan_nutricional_por_correo(plan,usuario_id,'Plan Nutricional','Hola',idioma)
+    
+def generar_plan_async(run, thread_id,usuario_id,idioma):
+    Thread(target=generar_plan, args=(run, thread_id,usuario_id,idioma)).start()
+
 
 @app.route('/')
 def index():
@@ -119,16 +142,28 @@ def crear_plan():
     Endpoint para iniciar el proceso de generación del plan de nutrición.
     Crea un nuevo thread y devuelve un token para el seguimiento.
     """
+
+    saludos_por_idioma = {
+    "en-US": "Hello",
+    "sv-SE": "Hej",
+    "es-ES": "Hola",
+    "pt-BR": "Olá",
+}
+
     data = request.json
     usuario_id = data.get('usuario_id')
-    
+    idioma = data.get('idioma')
+
+    # Selecciona el saludo apropiado del diccionario usando el código de idioma
+    saludo = saludos_por_idioma.get(idioma, "Hola") 
+
     # crear el thread
     thread = crear_thread()
     thread_id = thread.id
     # Generar token
-    token = generar_token(usuario_id,thread_id)
+    token = generar_token(usuario_id,thread_id,idioma)
     #Genera la primera pregunta
-    info = get_completion_from_messages("Hola",thread.id,instruc)
+    info = get_completion_from_messages(saludo,thread.id,instruc)
     print(info)
     mensaje = info['mensaje']
     logging.info(f'Plan creado para el usuario {usuario_id} con thread ID {thread_id}')
@@ -139,6 +174,13 @@ def manejar_preguntas():
     """
     Endpoint para manejar el flujo de preguntas y respuestas.
     """
+
+    fin_conversacion_por_idioma = {
+    "en-US": "Thanks for answering the questions. Your nutritional plan will be sent to you by e-mail",
+    "sv-SE": "Tack för att du svarade på frågorna. Din kostplan kommer att skickas till dig via e-post",
+    "es-ES": "Gracias por contestar las preguntas. Su plan nutricional le llegará por e-mail",
+    "pt-BR": "Obrigado por responder às perguntas. Seu plano nutricional será enviado para você por e-mail",
+}
     data = request.json
     token = data.get('token')
 
@@ -148,9 +190,9 @@ def manejar_preguntas():
     except TokenError as e:
         return jsonify({'error': str(e)}), 401
 
-    #usuario_id = token_info['usuario_id']
+    usuario_id = token_info['usuario_id']
     thread_id = token_info['thread_id']
-
+    idioma = token_info['idioma']
     respuesta = data.get('respuesta')
 
     # Aquí manejarías la respuesta y posiblemente prepararías la siguiente pregunta
@@ -159,8 +201,9 @@ def manejar_preguntas():
     info = get_completion_from_messages(respuesta,thread_id,instruc)
     mensaje = info['mensaje']
     if info['fin_conversacion']:
-        message = "Gracias por contestar las preguntas. Su plan nutricicional le llegará por e-mail"
-        generar_plan(mensaje.data[0].content[0].text.value)
+        message = fin_conversacion_por_idioma.get(idioma, "Gracias por contestar las preguntas. Su plan nutricional le llegará por e-mail") 
+        # Ahora se llama a la función auxiliar en lugar de a generar_plan directamente
+        generar_plan_async(info['run'], thread_id,usuario_id,idioma)
     else:
         message = mensaje.data[0].content[0].text.value
 
