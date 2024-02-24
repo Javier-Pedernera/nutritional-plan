@@ -19,7 +19,9 @@ url2 = os.getenv('URL2')
 url3 = os.getenv('URL3')
 
 app = Flask(__name__)
-
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(app.config['STATIC_FOLDER'], 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 
@@ -132,9 +134,7 @@ def generar_plan(run,thread_id,usuario_id,idioma):
 #     Thread(target=generar_plan, args=(run, thread_id,usuario_id,idioma)).start()
 async def generar_plan_async(run, thread_id,usuario_id,idioma):
     await asyncio.create_task(generar_plan(run, thread_id,usuario_id,idioma))
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(app.config['STATIC_FOLDER'], 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 @app.route('/')
 def index():
     return "Bienvenido a API REST de Plan Nutricional"
