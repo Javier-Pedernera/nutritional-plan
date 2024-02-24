@@ -6,7 +6,7 @@ import jwt
 import datetime
 import os
 from correo import enviar_plan_nutricional_por_correo
-
+from flask import url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -20,7 +20,9 @@ url3 = os.getenv('URL3')
 
 app = Flask(__name__)
 
-
+@app.route("/favicon.ico")
+def favicon():
+    return url_for('static', filename='data:,')
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 
 #cors = CORS(app, resources={r"*": {"origins": [url,url2,url3]}})
