@@ -5,7 +5,7 @@ import logging
 import jwt
 import datetime
 import os
-# from correo import enviar_plan_nutricional_por_correo
+from correo import enviar_plan_nutricional_por_correo
 
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -126,7 +126,7 @@ def generar_plan(run,thread_id,usuario_id,idioma):
         thread_messages = client.beta.threads.messages.list(thread_id)
         plan = thread_messages.data[0].content[0].text.value
         print(plan)
-        # enviar_plan_nutricional_por_correo(plan,usuario_id,'Plan Nutricional','Hola',idioma)
+        enviar_plan_nutricional_por_correo(plan,usuario_id,'Plan Nutricional','Hola',idioma)
     
 def generar_plan_async(run, thread_id,usuario_id,idioma):
     Thread(target=generar_plan, args=(run, thread_id,usuario_id,idioma)).start()
@@ -244,13 +244,6 @@ def internal_server_error(e):
     logging.error(f'Error 500: {e}')
     return jsonify(error=str(e)), 500
 
-# if __name__ == '__main__':
-#     port = int(os.environ.get("PORT", 5000))
-#     app.run(debug=True, host='0.0.0.0', port=port)
 if __name__ == '__main__':
-    try:
-        port = int(os.environ.get("PORT", 5000))
-        app.run(debug=True, host='0.0.0.0', port=port)
-    except Exception as e:
-        print("Se ha producido un error al ejecutar la aplicación Flask:")
-        print(str(e))
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
