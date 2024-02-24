@@ -6,10 +6,10 @@ import jwt
 import datetime
 import os
 from correo import enviar_plan_nutricional_por_correo
-from asyncio import asyncio
+
 from flask_cors import CORS
 from dotenv import load_dotenv
-from flask import send_from_directory
+
 load_dotenv()
 secretkey = os.getenv('SECRETKEY')
 api_key = os.getenv('API_KEY')
@@ -19,9 +19,7 @@ url2 = os.getenv('URL2')
 url3 = os.getenv('URL3')
 
 app = Flask(__name__)
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(app.config['STATIC_FOLDER'], 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 
@@ -130,10 +128,9 @@ def generar_plan(run,thread_id,usuario_id,idioma):
         print(plan)
         enviar_plan_nutricional_por_correo(plan,usuario_id,'Plan Nutricional','Hola',idioma)
     
-# def generar_plan_async(run, thread_id,usuario_id,idioma):
-#     Thread(target=generar_plan, args=(run, thread_id,usuario_id,idioma)).start()
-async def generar_plan_async(run, thread_id,usuario_id,idioma):
-    await asyncio.create_task(generar_plan(run, thread_id,usuario_id,idioma))
+def generar_plan_async(run, thread_id,usuario_id,idioma):
+    Thread(target=generar_plan, args=(run, thread_id,usuario_id,idioma)).start()
+
 
 @app.route('/')
 def index():
@@ -249,5 +246,4 @@ def internal_server_error(e):
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    asyncio.run(app.run(debug=True, host='0.0.0.0', port=port))
-    # app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)
