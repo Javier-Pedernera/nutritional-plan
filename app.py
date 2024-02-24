@@ -244,6 +244,13 @@ def internal_server_error(e):
     logging.error(f'Error 500: {e}')
     return jsonify(error=str(e)), 500
 
+# if __name__ == '__main__':
+#     port = int(os.environ.get("PORT", 5000))
+#     app.run(debug=True, host='0.0.0.0', port=port)
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    try:
+        port = int(os.environ.get("PORT", 5000))
+        app.run(debug=True, host='0.0.0.0', port=port)
+    except Exception as e:
+        print("Se ha producido un error al ejecutar la aplicación Flask:")
+        print(str(e))
