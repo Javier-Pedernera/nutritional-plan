@@ -9,7 +9,7 @@ from correo import enviar_plan_nutricional_por_correo
 from asyncio import asyncio
 from flask_cors import CORS
 from dotenv import load_dotenv
-
+from flask import send_from_directory
 load_dotenv()
 secretkey = os.getenv('SECRETKEY')
 api_key = os.getenv('API_KEY')
@@ -132,7 +132,9 @@ def generar_plan(run,thread_id,usuario_id,idioma):
 #     Thread(target=generar_plan, args=(run, thread_id,usuario_id,idioma)).start()
 async def generar_plan_async(run, thread_id,usuario_id,idioma):
     await asyncio.create_task(generar_plan(run, thread_id,usuario_id,idioma))
-
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(app.config['STATIC_FOLDER'], 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 @app.route('/')
 def index():
     return "Bienvenido a API REST de Plan Nutricional"
