@@ -126,7 +126,7 @@ def generar_plan(run,thread_id,usuario_id,idioma):
 
         thread_messages = client.beta.threads.messages.list(thread_id)
         plan = thread_messages.data[0].content[0].text.value
-        print(plan)
+        print("plan en api",plan)
         enviar_plan_nutricional_por_correo(plan,usuario_id,'Plan Nutricional','Hola',idioma)
     
 def generar_plan_async(run, thread_id,usuario_id,idioma):
