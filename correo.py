@@ -82,13 +82,19 @@ def enviar_plan_nutricional_por_correo(plan_nutricional, destinatario, asunto, s
                     background-color: #f9f9f9;
                     border-radius: 5px;
                 }}
+                .saludo {{
+                    font-size: medium;
+                    font-weight: bold;
+                    color: #333;
+                }}
                 /* Otros estilos, como para los días del plan, etc. */
             </style></head>
             <body>
             <div class="container">
                 <img src="{imagen_url}" alt="Nutriplan Logo" class="logo">
                 
-                <h1>{saludo} {destinatario},</h1>
+                <h1 class="saludo">{saludo} {destinatario},</h1>
+                <p>Aquí está tu plan nutricional para la semana:</p> 
                 <div class="plan-nutricional">
                  {lista_html}
                 </div>
