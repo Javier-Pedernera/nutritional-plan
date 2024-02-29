@@ -1,72 +1,3 @@
-# import smtplib
-# from email.mime.text import MIMEText
-# from email.mime.multipart import MIMEMultipart
-# import json
-# from dotenv import load_dotenv
-# import os
-# load_dotenv()
-# gmail = 'Nutriplan <javierprogra1@gmail.com>'
-# claveGmail = os.getenv('KEY_GMAIL')
-# # print(claveGmail)
-
-# def enviar_plan_nutricional_por_correo(plan_nutricional, destinatario, asunto, saludo, idioma):
-#     # Configuración del servidor SMTP de Gmail
-#     # servidor_smtp = 'smtp.gmail.com'
-#     # puerto_smtp = 587
-#     # usuario_smtp = 'tu_correo@gmail.com'  # Aquí va tu dirección de correo de Gmail
-#     # contrasena_smtp = 'tu_contraseña'  # Aquí va tu contraseña
-
-#     # Convertir el plan nutricional de JSON a un string en formato de texto plano
-#     plan_nutricional_str = json.dumps(plan_nutricional, indent=2, ensure_ascii=False)
-    
-#     # # Crear el mensaje de correo electrónico
-#     # mensaje = MIMEMultipart()
-#     # mensaje['From'] = usuario_smtp
-#     # mensaje['To'] = destinatario
-#     # mensaje['Subject'] = asunto
-
-#     # Preparar el cuerpo del correo
-#     cuerpo = f"{saludo},\n\nAquí está tu plan nutricional para la semana:\n\n{plan_nutricional_str}"
-#     # mensaje.attach(MIMEText(cuerpo, 'plain', _charset='utf-8'))
-    
-#     print("Mensaje a enviar:")
-#     print(cuerpo)
-    
-#     # Iniciar sesión en el servidor SMTP y enviar el correo
-#     # try:
-#     #     with smtplib.SMTP(servidor_smtp, puerto_smtp) as server:
-#     #         server.ehlo()
-#     #         server.starttls()
-#     #         server.ehlo()
-#     #         server.login(usuario_smtp, contrasena_smtp)
-#     #         server.sendmail(usuario_smtp, destinatario, mensaje.as_string())
-#     #         print("Correo enviado exitosamente.")
-#     # except Exception as e:
-#     #     print(f"Error al enviar el correo: {e}")
-
-# ###########################################################################################################
-#  # Iniciar sesión en el servidor SMTP y enviar el correo
-#     try:
-#         # Crear el mensaje de correo electrónico
-#         mensaje = MIMEMultipart()
-#         mensaje['From'] = gmail  # Tu dirección de correo de Gmail
-#         mensaje['To'] = destinatario
-#         mensaje['Subject'] = asunto
-
-#         # Adjuntar el cuerpo del mensaje
-#         mensaje.attach(MIMEText(cuerpo, 'plain', _charset='utf-8'))
-
-#         # Configurar el servidor SMTP de Gmail y enviar el correo
-#         with smtplib.SMTP('smtp.gmail.com', 587) as server:
-#             server.starttls()
-#             server.login(gmail, claveGmail)  # Tu dirección de correo y contraseña
-#             server.send_message(mensaje)
-#         print("Correo enviado exitosamente.")
-#     except Exception as e:
-#         print(f"Error al enviar el correo: {e}")
-
-
-        ########Modificando estilo
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -81,13 +12,48 @@ gmail = 'javierprogra1@gmail.com'
 claveGmail = os.getenv('KEY_GMAIL')
 
 def enviar_plan_nutricional_por_correo(plan_nutricional, destinatario, asunto, saludo, idioma):
-    print("plan nutricional en el correo:",plan_nutricional)
+    print("tipo de plan_nutricional",type(plan_nutricional))
+    print("plan nutricional en el correo antes de dumps:",plan_nutricional)
+
+        #El problema esta en que debo cortar la respuesta de Openai porque no es un JSON para trabajar directamente Es un strin con ```Json {debo extraer este objeto}```
+    if isinstance(plan_nutricional, str):
+        inicio_json = plan_nutricional.find('{')
+
+        fin_json = plan_nutricional.rfind('}') + 1
+
+        plan_nutricional_recortado = plan_nutricional[inicio_json:fin_json]
+        try:
+            plan_nutricional = json.loads(plan_nutricional_recortado)
+            print("plan nutricional cargado como diccionario:", plan_nutricional)
+        except json.JSONDecodeError as e:
+            print("Error al cargar la cadena JSON:", e)
+            return
+
+    if isinstance(plan_nutricional, dict):
+        print("Claves del JSON antes de la serialización:")
+        print(plan_nutricional.keys())
+    else:
+        print("El objeto 'plan_nutricional' no es un diccionario.")
 
     plan_nutricional_str = json.dumps(plan_nutricional, indent=2, ensure_ascii=False)
-    print("plan nutricional en el correo despues de dumps:",plan_nutricional_str)
-        # Encontrar el índice de inicio del JSON
-
+    print("plan nutricional en el correo después de dumps:", plan_nutricional_str)
     
+    print("tipo de plan_nutricional_str:", type(plan_nutricional_str))
+
+    plan_nutricional_deserializado = json.loads(plan_nutricional_str)
+    print("plan nutricional deserializado:", plan_nutricional_deserializado)
+
+    print("tipo de plan_nutricional_deserializado:", type(plan_nutricional_deserializado))
+    
+    lista_html = "<ul>"
+    for dia, comidas in plan_nutricional_deserializado.items():
+        lista_html += f"<li><strong>{dia}:</strong>"
+        lista_html += "<ul>"
+        for comida, descripcion in comidas.items():
+            lista_html += f"<li>{comida}: {descripcion}</li>"
+        lista_html += "</ul></li>"
+    lista_html += "</ul>"
+   
     imagen_url = 'https://res.cloudinary.com/dbwmesg3e/image/upload/v1709135936/Nutriplan/fondoNP_jlspdu.png'
     cuerpo = f"""
         <html>
@@ -124,7 +90,7 @@ def enviar_plan_nutricional_por_correo(plan_nutricional, destinatario, asunto, s
                 
                 <h1>{saludo} {destinatario},</h1>
                 <div class="plan-nutricional">
-                <pre>{plan_nutricional_str}</pre>
+                 {lista_html}
                 </div>
                 <p>Saludos,</p>
                 <p>Nutriplan</p>
